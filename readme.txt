@@ -19,6 +19,7 @@ Customizable preferences include:
 * Option to insert a Libronix icon after any Libronix DLS links you already have on your site.
 * Choice of which icon to use if Libronix DLS links are enabled.
 * Option to enable or disable hover tooltips.
+* Option to override the default tooltip CSS & provide your own.
 * Option to prevent searching user comments for references.
 * Option to prevent searching specific HTML tags, such as bold, h1, ordered list, etc. 
 

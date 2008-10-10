@@ -4,7 +4,7 @@ Plugin Name: RefTagger
 Plugin URI: http://www.logos.com/reftagger
 Description: Transform Bible references into links to the full text of the verse.
 Author: Logos Bible Software
-Version: 1.3
+Version: 1.4
 Author URI: http://www.logos.com
 */
 
@@ -18,9 +18,10 @@ function lbsFooter($unused)
 	$search_comments = get_option('lbs_search_comments');
 	$nosearch = get_option('lbs_nosearch');
 	$new_window = get_option('lbs_new_window');
-	$first = true;
 	$libronix_bible_version = get_option('lbs_libronix_bible_version');
-
+	$css_override = get_option('lbs_css_override');
+	$first = true;
+	
 	// Generate the script code to be printed on the page
 	?><script src="http://bible.logos.com/jsapi/Referencetagging.js" type="text/javascript"></script>
 	
@@ -45,6 +46,7 @@ function lbsFooter($unused)
 				}
 			}?> ];
 			<?php if($new_window == 1) echo 'Logos.ReferenceTagging.lbsLinksOpenNewWindow = true;';?>
+			<?php if($css_override == 1) echo 'Logos.ReferenceTagging.lbsCssOverride  = true;';?>
 			Logos.ReferenceTagging.tag();
 		</script><?php
 }
@@ -64,6 +66,7 @@ function lbs_set_options()
 	add_option('lbs_nosearch', $default_nosearch, 'List of HTML tags that will not be searched');
 	add_option('lbs_new_window', '0', 'Whether or not to open links in a new window');
 	add_option('lbs_libronix_bible_version', 'ESV', 'Which Bible version to use with Libronix links');
+	add_option('lbs_css_override', '0', 'Whether or not to override the default tooltip CSS');
 }
 
 // Remove the user preferences when the plugin is disabled
@@ -78,6 +81,7 @@ function lbs_unset_options()
 	delete_option('lbs_nosearch');
 	delete_option('lbs_new_window');
 	delete_option('lbs_libronix_bible_version');
+	delete_option('lbs_css_override');
 }
 
 // The options page
@@ -107,6 +111,7 @@ function lbs_update_options()
 	$nosearch = get_option('lbs_nosearch');
 	$window = get_option('lbs_new_window');
 	$old_tooltips = get_option('lbs_tooltips');
+	$old_css = get_option('lbs_css_override');
 	
 	if($_REQUEST['lbs_bible_version'])
 	{
@@ -114,7 +119,7 @@ function lbs_update_options()
 		$changed = true;
 	}
 	
-		if($_REQUEST['lbs_libronix_bible_version'])
+	if($_REQUEST['lbs_libronix_bible_version'])
 	{
 		update_option('lbs_libronix_bible_version', $_REQUEST['lbs_libronix_bible_version']);
 		$changed = true;
@@ -124,6 +129,12 @@ function lbs_update_options()
 	if($_REQUEST['lbs_libronix'] != $old_libronix)
 	{
 		update_option('lbs_libronix', $_REQUEST['lbs_libronix']);
+		$changed = true;
+	}
+	
+	if($_REQUEST['lbs_css_override'] != $old_css)
+	{
+		update_option('lbs_css_override', $_REQUEST['lbs_css_override']);
 		$changed = true;
 	}
 	
@@ -258,6 +269,7 @@ function lbs_options_page()
 	$selected_comments = get_option('lbs_search_comments');
 	$selected_window = get_option('lbs_new_window');
 	$selected_lib_version = get_option('lbs_libronix_bible_version');
+	$selected_css_override = get_option('lbs_css_override');
 	
 	?>
 	<form method="post">
@@ -345,6 +357,15 @@ function lbs_options_page()
 		<input name="lbs_tooltips" value="1" id="lbs_tooltips" type="checkbox" <?php if ($selected_tooltips == '1') { print 'checked="CHECKED"'; } ?>>
 		<label for="lbs_tooltips">&nbsp;Show a tooltip containing verse text when the mouse hovers over a reference.
 		</label>
+		</td>
+		</tr>
+		<tr valign="middle">
+		<th scope="row">Tooltip style:</th>
+		<td>
+		<input name="lbs_css_override" value="0" id="lbs_css_override0" style="vertical-align: middle" type="radio" <?php if ($selected_css_override == '0') { print 'checked="CHECKED"'; } ?>><label for="lbs_css_override0">&nbsp;Use the default styling.</label>
+		<br/>
+		<input name="lbs_css_override" value="1" id="lbs_css_override1" style="vertical-align: middle" type="radio" <?php if ($selected_css_override == '1') { print 'checked="CHECKED"'; } ?>>
+		<label for="lbs_css_override1">&nbsp;I will provide my own CSS. (<a href="http://www.logos.com/reftagger#advanced-customizations">instructions</a> - Skip step 1.)</label>
 		</td>
 		</tr>
 		<tr style="vertical-align:top">
