@@ -4,8 +4,8 @@ Plugin Name: RefTagger
 Plugin URI: http://www.logos.com/reftagger
 Description: Transform Bible references into links to the full text of the verse.
 Author: Logos Bible Software
-Version: 1.4
-Author URI: http://www.logos.com
+Version: 1.5
+Author URI: http://www.logos.com/
 */
 
 function lbsFooter($unused)
@@ -20,12 +20,14 @@ function lbsFooter($unused)
 	$new_window = get_option('lbs_new_window');
 	$libronix_bible_version = get_option('lbs_libronix_bible_version');
 	$css_override = get_option('lbs_css_override');
+	$convert_hyperlinks = get_option('lbs_convert_hyperlinks');
+	$case_insensitive = get_option('lbs_case_insensitive');
 	$first = true;
 	
 	// Generate the script code to be printed on the page
-	?><script src="http://bible.logos.com/jsapi/Referencetagging.js" type="text/javascript"></script>
-	
-		<script type="text/javascript">
+	?>
+<script src="http://bible.logos.com/jsapi/Referencetagging.js" type="text/javascript"></script>
+<script type="text/javascript">
 			Logos.ReferenceTagging.lbsBibleVersion = "<?php echo $bible_version;?>";
 			Logos.ReferenceTagging.lbsLibronixBibleVersion = "<?php echo $libronix_bible_version;?>";
 			<?php if($libronix == 1) echo 'Logos.ReferenceTagging.lbsAddLibronixDLSLink = true;';?>
@@ -46,9 +48,12 @@ function lbsFooter($unused)
 				}
 			}?> ];
 			<?php if($new_window == 1) echo 'Logos.ReferenceTagging.lbsLinksOpenNewWindow = true;';?>
-			<?php if($css_override == 1) echo 'Logos.ReferenceTagging.lbsCssOverride  = true;';?>
+			<?php if($css_override == 1) echo 'Logos.ReferenceTagging.lbsCssOverride = true;';?>
+			<?php if($convert_hyperlinks == 1) echo 'Logos.ReferenceTagging.lbsConvertHyperlinks = true;';?>
+			<?php if($case_insensitive == 1) echo 'Logos.ReferenceTagging.lbsCaseInsensitive = true;';?>
 			Logos.ReferenceTagging.tag();
-		</script><?php
+		</script>
+<?php
 }
 
 // Register the user preferences when the plugin is enabled
@@ -58,7 +63,7 @@ function lbs_set_options()
 	add_option('lbs_libronix', 'false', 'Insert Libronix links');
 	add_option('lbs_existing_libronix', 'false', 'Insert Libronix icon after existing Libronix links');
 	add_option('lbs_libronix_color', 'dark', 'Color of Libronix link icons');
-	add_option('lbs_tooltips', '1', 'Show a tooltip containing verse text when the mouse hovers over a reference');
+	add_option('lbs_tooltips', '1', 'Show a tooltip containing the verse text when the mouse hovers over a reference');
 	add_option('lbs_search_comments', '1', 'Whether or not to search user comments');
 	$default_nosearch = array('h1' => "1",
 							  'h2' => "1",
@@ -67,6 +72,8 @@ function lbs_set_options()
 	add_option('lbs_new_window', '0', 'Whether or not to open links in a new window');
 	add_option('lbs_libronix_bible_version', 'ESV', 'Which Bible version to use with Libronix links');
 	add_option('lbs_css_override', '0', 'Whether or not to override the default tooltip CSS');
+	add_option('lbs_convert_hyperlinks', '0', 'Whether or not to add tooltips to existing Bible.Logos.com and Ref.ly links');
+	add_option('lbs_case_insensitive', '0', 'Whether or not to link references with improper casing');
 }
 
 // Remove the user preferences when the plugin is disabled
@@ -82,12 +89,18 @@ function lbs_unset_options()
 	delete_option('lbs_new_window');
 	delete_option('lbs_libronix_bible_version');
 	delete_option('lbs_css_override');
+	delete_option('lbs_convert_hyperlinks');
+	delete_option('lbs_case_insensitive');
 }
 
 // The options page
 function lbs_admin_options()
 {
-	?><div class="wrap"><h2>RefTagger Options</h2><?php
+	?>
+
+<div class="wrap">
+  <h2>RefTagger Settings</h2>
+  <?php
 	
 	// If the user clicked submit, update the preferences
 	if($_REQUEST['submit'])
@@ -98,7 +111,9 @@ function lbs_admin_options()
 	// Print the options page
 	lbs_options_page();
 	
-	?></div><?php
+	?>
+</div>
+<?php
 }
 
 // Update any preferences the user has changed
@@ -112,7 +127,9 @@ function lbs_update_options()
 	$window = get_option('lbs_new_window');
 	$old_tooltips = get_option('lbs_tooltips');
 	$old_css = get_option('lbs_css_override');
-	
+	$old_convert = get_option('lbs_convert_hyperlinks');
+	$old_case = get_option('lbs_case_insensitive');
+
 	if($_REQUEST['lbs_bible_version'])
 	{
 		update_option('lbs_bible_version', $_REQUEST['lbs_bible_version']);
@@ -135,6 +152,18 @@ function lbs_update_options()
 	if($_REQUEST['lbs_css_override'] != $old_css)
 	{
 		update_option('lbs_css_override', $_REQUEST['lbs_css_override']);
+		$changed = true;
+	}
+
+	if($_REQUEST['lbs_convert_hyperlinks'] != $old_convert)
+	{
+		update_option('lbs_convert_hyperlinks', $_REQUEST['lbs_convert_hyperlinks']);
+		$changed = true;
+	}
+	
+	if($_REQUEST['lbs_case_insensitive'] != $old_case)
+	{
+		update_option('lbs_case_insensitive', $_REQUEST['lbs_case_insensitive']);
 		$changed = true;
 	}
 	
@@ -251,9 +280,11 @@ function lbs_update_options()
 	}	
 	if($changed)
 	{
-		?><div id="message" class="updated fade">
-			<p>Settings Saved.</p>
-		</div><?php
+		?>
+<div id="message" class="updated fade">
+  <p>Settings Saved.</p>
+</div>
+<?php
 	}
 }
 
@@ -270,161 +301,162 @@ function lbs_options_page()
 	$selected_window = get_option('lbs_new_window');
 	$selected_lib_version = get_option('lbs_libronix_bible_version');
 	$selected_css_override = get_option('lbs_css_override');
-	
+	$selected_convert_hyperlinks = get_option('lbs_convert_hyperlinks');
+	$selected_case_insensitive = get_option('lbs_case_insensitive');	
 	?>
-	<form method="post">
-	
-		<table class="form-table">
-		<tr valign="top">
-		<th scope="row">Bible version:</th>
-		<td>
-			<select name="lbs_bible_version">
-				<option value="NIV" <?php if ($selected_version == 'NIV') { print 'selected="SELECTED"'; } ?>>NIV</option>
-				<option value="NASB" <?php if ($selected_version == 'NASB') { print 'selected="SELECTED"'; } ?>>NASB</option>
-				<option value="KJV" <?php if ($selected_version == 'KJV') { print 'selected="SELECTED"'; } ?>>KJV</option>
-				<option value="ESV" <?php if ($selected_version == 'ESV') { print 'selected="SELECTED"'; } ?>>ESV</option>
-				<option value="ASV" <?php if ($selected_version == 'ASV') { print 'selected="SELECTED"'; } ?>>ASV</option>
-				<option value="NLT" <?php if ($selected_version == 'NLT') { print 'selected="SELECTED"'; } ?>>NLT</option>
-				<option value="NKJV" <?php if ($selected_version == 'NKJV') { print 'selected="SELECTED"'; } ?>>NKJV</option>
-				<option value="YLT" <?php if ($selected_version == 'YLT') { print 'selected="SELECTED"'; } ?>>YLT</option>
-				<option value="DAR" <?php if ($selected_version == 'DAR') { print 'selected="SELECTED"'; } ?>>DARBY</option>
-				<option value="NIRV" <?php if ($selected_version == 'NIRV') { print 'selected="SELECTED"'; } ?>>NIRV</option>
-				<option value="TNIV" <?php if ($selected_version == 'TNIV') { print 'selected="SELECTED"'; } ?>>TNIV</option>
-			</select>
-		</td>
-		</tr>
-		<tr valign="middle">
-		<th scope="row">Links open in:</th>
-		<td>
-		<input name="lbs_new_window" value="0" id="lbs_new_window0" style="vertical-align: middle" type="radio" <?php if ($selected_window == '0') { print 'checked="CHECKED"'; } ?>><label for="lbs_new_window0">&nbsp;Existing window</label>
-		<br/>
-		<input name="lbs_new_window" value="1" id="lbs_new_window1" style="vertical-align: middle" type="radio" <?php if ($selected_window == '1') { print 'checked="CHECKED"'; } ?>>
-		<label for="lbs_new_window1">&nbsp;New window</label>
-		</td>
-		</tr>
-		<tr valign="middle">
-		<th scope="row">Insert Libronix links:</th>
-		<td>
-		<input name="lbs_libronix" value="1" id="lbs_libronix" type="checkbox" <?php if ($selected_libronix == '1') { print 'checked="CHECKED"'; } ?>>
-		<label for="lbs_libronix">&nbsp;Insert a small icon linking to the verse in <a href="http://www.logos.com/products/ldls">Libronix DLS</a></label>
-		<br/>
-		<input name="lbs_existing_libronix" value="1" id="lbs_existing_libronix" type="checkbox" <?php if ($selected_existing_libronix == '1') { print 'checked="CHECKED"'; } ?>>
-		<label for="lbs_existing_libronix">&nbsp;Add a Libronix icon to previously existing Libronix links</label>
-		</td>
-		</tr>
-		<tr valign="top">
-		<th scope="row">Libronix Bible version:</th>
-		<td>
-			<select name="lbs_libronix_bible_version">
-				<option value="DEFAULT" <?php if ($selected_lib_version == 'DEFAULT') { print 'selected="SELECTED"'; } ?>>User's Default</option>
-				<option value="NIV" <?php if ($selected_lib_version == 'NIV') { print 'selected="SELECTED"'; } ?>>NIV</option>
-				<option value="NASB95" <?php if ($selected_lib_version == 'NASB95') { print 'selected="SELECTED"'; } ?>>NASB95</option>
-				<option value="NASB" <?php if ($selected_lib_version == 'NASB') { print 'selected="SELECTED"'; } ?>>NASB77</option>
-				<option value="KJV" <?php if ($selected_lib_version == 'KJV') { print 'selected="SELECTED"'; } ?>>KJV</option>
-				<option value="ESV" <?php if ($selected_lib_version == 'ESV') { print 'selected="SELECTED"'; } ?>>ESV</option>
-				<option value="ASV" <?php if ($selected_lib_version == 'ASV') { print 'selected="SELECTED"'; } ?>>ASV</option>
-				<option value="MESSAGE" <?php if ($selected_lib_version == 'MESSAGE') { print 'selected="SELECTED"'; } ?>>MSG</option>
-				<option value="NRSV" <?php if ($selected_lib_version == 'NRSV') { print 'selected="SELECTED"'; } ?>>NRSV</option>
-				<option value="AMP" <?php if ($selected_lib_version == 'AMP') { print 'selected="SELECTED"'; } ?>>AMP</option>
-				<option value="NLT" <?php if ($selected_lib_version == 'NLT') { print 'selected="SELECTED"'; } ?>>NLT</option>
-				<option value="CEV" <?php if ($selected_lib_version == 'CEV') { print 'selected="SELECTED"'; } ?>>CEV</option>
-				<option value="NKJV" <?php if ($selected_lib_version == 'NKJV') { print 'selected="SELECTED"'; } ?>>NKJV</option>
-				<option value="NCV" <?php if ($selected_lib_version == 'NCV') { print 'selected="SELECTED"'; } ?>>NCV</option>
-				<option value="KJ21" <?php if ($selected_lib_version == 'KJ21') { print 'selected="SELECTED"'; } ?>>KJ21</option>
-				<option value="YLT" <?php if ($selected_lib_version == 'YLT') { print 'selected="SELECTED"'; } ?>>YLT</option>
-				<option value="DARBY" <?php if ($selected_lib_version == 'DARBY') { print 'selected="SELECTED"'; } ?>>DARBY</option>
-				<option value="ANIV" <?php if ($selected_lib_version == 'ANIV') { print 'selected="SELECTED"'; } ?>>ANIV</option>
-				<option value="HCSB" <?php if ($selected_lib_version == 'HCSB') { print 'selected="SELECTED"'; } ?>>HCSB</option>
-				<option value="NIRV" <?php if ($selected_lib_version == 'NIRV') { print 'selected="SELECTED"'; } ?>>NIRV</option>
-				<option value="TNIV" <?php if ($selected_lib_version == 'TNIV') { print 'selected="SELECTED"'; } ?>>TNIV</option>
-			</select>
-		</td>
-		</tr>
-		
-		<tr valign="top">
-		<th scope="row">Libronix link icon:</th>
-		<td>
-		<input name="lbs_libronix_color" id="lbs_libronix_color0" value="dark" style="vertical-align: middle" type="radio" <?php if ($selected_color == 'dark') { print 'checked="CHECKED"'; } ?>>
-		<label for="lbs_libronix_color0">&nbsp;<img src="http://www.logos.com/images/Corporate/LibronixLink_dark.png"/>&nbsp;Dark (for sites with light backgrounds)</label>
-		<br/>
-		<input name="lbs_libronix_color" value="light" id="lbs_libronix_color1" style="vertical-align: middle" type="radio" <?php if ($selected_color == 'light') { print 'checked="CHECKED"'; } ?>>
-		<label for="lbs_libronix_color1">&nbsp;<img src="http://www.logos.com/images/Corporate/LibronixLink_light.png"/>&nbsp;Light (for sites with dark backgrounds)</label>
-		</td>
-		</tr>
-		<tr style="vertical-align:top">
-		<th scope="row">Show ToolTips:</th>
-		<td>
-		<input name="lbs_tooltips" value="1" id="lbs_tooltips" type="checkbox" <?php if ($selected_tooltips == '1') { print 'checked="CHECKED"'; } ?>>
-		<label for="lbs_tooltips">&nbsp;Show a tooltip containing verse text when the mouse hovers over a reference.
-		</label>
-		</td>
-		</tr>
-		<tr valign="middle">
-		<th scope="row">Tooltip style:</th>
-		<td>
-		<input name="lbs_css_override" value="0" id="lbs_css_override0" style="vertical-align: middle" type="radio" <?php if ($selected_css_override == '0') { print 'checked="CHECKED"'; } ?>><label for="lbs_css_override0">&nbsp;Use the default styling.</label>
-		<br/>
-		<input name="lbs_css_override" value="1" id="lbs_css_override1" style="vertical-align: middle" type="radio" <?php if ($selected_css_override == '1') { print 'checked="CHECKED"'; } ?>>
-		<label for="lbs_css_override1">&nbsp;I will provide my own CSS. (<a href="http://www.logos.com/reftagger#advanced-customizations">instructions</a> - Skip step 1.)</label>
-		</td>
-		</tr>
-		<tr style="vertical-align:top">
-		<th scope="row">Search Options:</th>
-		<td>
-		
-		<input name="lbs_search_comments" value="1" id="lbs_search_comments" type="checkbox" <?php if ($selected_comments == '1') { print 'checked="CHECKED"'; } ?>>
-		<label for="lbs_search_comments">&nbsp;Search for Bible references in user comments</label>
-		<br/><br/>
-		<table>
-		<tr>Do not search the following HTML tags</tr>
-		<tr>
-		<td>
-		<input name="lbs_nosearch_b" value="1" id="lbs_nosearch_b" type="checkbox" <?php if ($selected_nosearch['b'] == '1') { print 'checked="CHECKED"'; } ?>>
-		<label for="lbs_nosearch_b">&nbsp;Bold</label>
-		<br/>
-		<input name="lbs_nosearch_i" value="1" id="lbs_nosearch_i" type="checkbox" <?php if ($selected_nosearch['i'] == '1') { print 'checked="CHECKED"'; } ?>>
-		<label for="lbs_nosearch_i">&nbsp;Italic</label>
-		<br/>
-		<input name="lbs_nosearch_u" value="1" id="lbs_nosearch_u" type="checkbox" <?php if ($selected_nosearch['u'] == '1') { print 'checked="CHECKED"'; } ?>>
-		<label for="lbs_nosearch_u">&nbsp;Underline</label>
-		<br/>
-		<input name="lbs_nosearch_ol" value="1" id="lbs_nosearch_ol" type="checkbox" <?php if ($selected_nosearch['ol'] == '1') { print 'checked="CHECKED"'; } ?>>
-		<label for="lbs_nosearch_ol">&nbsp;Ordered list</label>
-		<br/>
-		<input name="lbs_nosearch_ul" value="1" id="lbs_nosearch_ul" type="checkbox" <?php if ($selected_nosearch['ul'] == '1') { print 'checked="CHECKED"'; } ?>>
-		<label for="lbs_nosearch_ul">&nbsp;Unordered list</label>
-		<br/>
-		<input name="lbs_nosearch_span" value="1" id="lbs_nosearch_span" type="checkbox" <?php if ($selected_nosearch['span'] == '1') { print 'checked="CHECKED"'; } ?>>
-		<label for="lbs_nosearch_span">&nbsp;Span</label>
-		</td>
-		<td>
-		<input name="lbs_nosearch_h1" value="1" id="lbs_nosearch_h1" type="checkbox" <?php if ($selected_nosearch['h1'] == '1') { print 'checked="CHECKED"'; } ?>>
-		<label for="lbs_nosearch_h1">&nbsp;Header 1</label>
-		<br/>
-		<input name="lbs_nosearch_h2" value="1" id="lbs_nosearch_h2" type="checkbox" <?php if ($selected_nosearch['h2'] == '1') { print 'checked="CHECKED"'; } ?>>
-		<label for="lbs_nosearch_h2">&nbsp;Header 2</label>
-		<br/>
-		<input name="lbs_nosearch_h3" value="1" id="lbs_nosearch_h3" type="checkbox" <?php if ($selected_nosearch['h3'] == '1') { print 'checked="CHECKED"'; } ?>>
-		<label for="lbs_nosearch_h3">&nbsp;Header 3</label>
-		<br/>
-		<input name="lbs_nosearch_h4" value="1" id="lbs_nosearch_h4" type="checkbox" <?php if ($selected_nosearch['h4'] == '1') { print 'checked="CHECKED"'; } ?>>
-		<label for="lbs_nosearch_h4">&nbsp;Header 4</label>
-		<br/>
-		<input name="lbs_nosearch_h5" value="1" id="lbs_nosearch_h5" type="checkbox" <?php if ($selected_nosearch['h5'] == '1') { print 'checked="CHECKED"'; } ?>>
-		<label for="lbs_nosearch_h5">&nbsp;Header 5</label>
-		<br/>
-		<input name="lbs_nosearch_h6" value="1" id="lbs_nosearch_h6" type="checkbox" <?php if ($selected_nosearch['h6'] == '1') { print 'checked="CHECKED"'; } ?>>
-		<label for="lbs_nosearch_h6">&nbsp;Header 6</label>
-		</td>
-		</tr>
-		</td>
-		</table>
-		</table>
-		<p class="submit">
-			<input type="submit" name="submit" value="Save Changes" />
-		</p>
-	</form>
-	<?php
+<form method="post">
+  <table class="form-table">
+    <tr style="vertical-align:top">
+      <th scope="row">Bible version:</th>
+      <td><select name="lbs_bible_version">
+          <option value="NIV" <?php if ($selected_version == 'NIV') { print 'selected="SELECTED"'; } ?>>NIV</option>
+          <option value="NASB" <?php if ($selected_version == 'NASB') { print 'selected="SELECTED"'; } ?>>NASB</option>
+          <option value="KJV" <?php if ($selected_version == 'KJV') { print 'selected="SELECTED"'; } ?>>KJV</option>
+          <option value="ESV" <?php if ($selected_version == 'ESV') { print 'selected="SELECTED"'; } ?>>ESV</option>
+          <option value="ASV" <?php if ($selected_version == 'ASV') { print 'selected="SELECTED"'; } ?>>ASV</option>
+          <option value="NLT" <?php if ($selected_version == 'NLT') { print 'selected="SELECTED"'; } ?>>NLT</option>
+          <option value="NKJV" <?php if ($selected_version == 'NKJV') { print 'selected="SELECTED"'; } ?>>NKJV</option>
+          <option value="YLT" <?php if ($selected_version == 'YLT') { print 'selected="SELECTED"'; } ?>>YLT</option>
+          <option value="DAR" <?php if ($selected_version == 'DAR') { print 'selected="SELECTED"'; } ?>>DARBY</option>
+          <option value="NIRV" <?php if ($selected_version == 'NIRV') { print 'selected="SELECTED"'; } ?>>NIRV</option>
+          <option value="TNIV" <?php if ($selected_version == 'TNIV') { print 'selected="SELECTED"'; } ?>>TNIV</option>
+        </select>
+      </td>
+    </tr>
+    <tr style="vertical-align:middle">
+      <th scope="row">Links open in:</th>
+      <td><input name="lbs_new_window" value="0" id="lbs_new_window0" style="vertical-align: middle" type="radio" <?php if ($selected_window == '0') { print 'checked="CHECKED"'; } ?>>
+        <label for="lbs_new_window0">Existing window</label>
+        <br/>
+        <input name="lbs_new_window" value="1" id="lbs_new_window1" style="vertical-align: middle" type="radio" <?php if ($selected_window == '1') { print 'checked="CHECKED"'; } ?>>
+        <label for="lbs_new_window1">New window</label>
+      </td>
+    </tr>
+    <tr style="vertical-align:middle">
+      <th scope="row">Insert Libronix links:</th>
+      <td><input name="lbs_libronix" value="1" id="lbs_libronix" type="checkbox" <?php if ($selected_libronix == '1') { print 'checked="CHECKED"'; } ?>>
+        <label for="lbs_libronix">Insert a small icon linking to the verse in <a href="http://www.logos.com/demo?wprtplugin" target="_blank">Libronix</a>.</label>
+        <br/>
+        <input name="lbs_existing_libronix" value="1" id="lbs_existing_libronix" type="checkbox" <?php if ($selected_existing_libronix == '1') { print 'checked="CHECKED"'; } ?>>
+        <label for="lbs_existing_libronix">Add a Libronix icon to existing Libronix links.</label>
+      </td>
+    </tr>
+    <tr style="vertical-align:top">
+      <th scope="row">Libronix Bible version:</th>
+      <td><select name="lbs_libronix_bible_version">
+          <option value="DEFAULT" <?php if ($selected_lib_version == 'DEFAULT') { print 'selected="SELECTED"'; } ?>>User’s Default</option>
+          <option value="NIV" <?php if ($selected_lib_version == 'NIV') { print 'selected="SELECTED"'; } ?>>NIV</option>
+          <option value="NASB95" <?php if ($selected_lib_version == 'NASB95') { print 'selected="SELECTED"'; } ?>>NASB95</option>
+          <option value="NASB" <?php if ($selected_lib_version == 'NASB') { print 'selected="SELECTED"'; } ?>>NASB77</option>
+          <option value="KJV" <?php if ($selected_lib_version == 'KJV') { print 'selected="SELECTED"'; } ?>>KJV</option>
+          <option value="ESV" <?php if ($selected_lib_version == 'ESV') { print 'selected="SELECTED"'; } ?>>ESV</option>
+          <option value="ASV" <?php if ($selected_lib_version == 'ASV') { print 'selected="SELECTED"'; } ?>>ASV</option>
+          <option value="MESSAGE" <?php if ($selected_lib_version == 'MESSAGE') { print 'selected="SELECTED"'; } ?>>MSG</option>
+          <option value="NRSV" <?php if ($selected_lib_version == 'NRSV') { print 'selected="SELECTED"'; } ?>>NRSV</option>
+          <option value="AMP" <?php if ($selected_lib_version == 'AMP') { print 'selected="SELECTED"'; } ?>>AMP</option>
+          <option value="NLT" <?php if ($selected_lib_version == 'NLT') { print 'selected="SELECTED"'; } ?>>NLT</option>
+          <option value="CEV" <?php if ($selected_lib_version == 'CEV') { print 'selected="SELECTED"'; } ?>>CEV</option>
+          <option value="NKJV" <?php if ($selected_lib_version == 'NKJV') { print 'selected="SELECTED"'; } ?>>NKJV</option>
+          <option value="NCV" <?php if ($selected_lib_version == 'NCV') { print 'selected="SELECTED"'; } ?>>NCV</option>
+          <option value="KJ21" <?php if ($selected_lib_version == 'KJ21') { print 'selected="SELECTED"'; } ?>>KJ21</option>
+          <option value="YLT" <?php if ($selected_lib_version == 'YLT') { print 'selected="SELECTED"'; } ?>>YLT</option>
+          <option value="DARBY" <?php if ($selected_lib_version == 'DARBY') { print 'selected="SELECTED"'; } ?>>DARBY</option>
+          <option value="ANIV" <?php if ($selected_lib_version == 'ANIV') { print 'selected="SELECTED"'; } ?>>ANIV</option>
+          <option value="HCSB" <?php if ($selected_lib_version == 'HCSB') { print 'selected="SELECTED"'; } ?>>HCSB</option>
+          <option value="NIRV" <?php if ($selected_lib_version == 'NIRV') { print 'selected="SELECTED"'; } ?>>NIRV</option>
+          <option value="TNIV" <?php if ($selected_lib_version == 'TNIV') { print 'selected="SELECTED"'; } ?>>TNIV</option>
+        </select>
+      </td>
+    </tr>
+    <tr style="vertical-align:top">
+      <th scope="row">Libronix link icon:</th>
+      <td><input name="lbs_libronix_color" id="lbs_libronix_color0" value="dark" style="vertical-align: middle" type="radio" <?php if ($selected_color == 'dark') { print 'checked="CHECKED"'; } ?>>
+        <label for="lbs_libronix_color0"><img src="http://www.logos.com/images/Corporate/LibronixLink_dark.png"/> Dark (for sites with light backgrounds)</label>
+        <br/>
+        <input name="lbs_libronix_color" value="light" id="lbs_libronix_color1" style="vertical-align: middle" type="radio" <?php if ($selected_color == 'light') { print 'checked="CHECKED"'; } ?>>
+        <label for="lbs_libronix_color1"><img src="http://www.logos.com/images/Corporate/LibronixLink_light.png"/> Light (for sites with dark backgrounds)</label>
+      </td>
+    </tr>
+    <tr style="vertical-align:top">
+      <th scope="row">Show tooltips:</th>
+      <td><input name="lbs_tooltips" value="1" id="lbs_tooltips" type="checkbox" <?php if ($selected_tooltips == '1') { print 'checked="CHECKED"'; } ?>>
+        <label for="lbs_tooltips">Show a tooltip containing the verse text when the mouse hovers over a reference.</label>
+      </td>
+    </tr>
+    <tr style="vertical-align:top">
+      <th scope="row">Tooltip style:</th>
+      <td><input name="lbs_css_override" value="1" id="lbs_css_override" type="checkbox" <?php if ($selected_css_override == '1') { print 'checked="CHECKED"'; } ?>>
+        <label for="lbs_css_override1">Use the custom CSS I have already added to my stylesheet. (Follow <a href="http://www.logos.com/reftagger#style-tooltips" target="_blank">these instructions</a>, but skip step 1.)</label>
+      </td>
+    </tr>
+    <tr style="vertical-align:top">
+      <th scope="row">Add tooltips to links:</th>
+      <td><input name="lbs_convert_hyperlinks" value="1" id="lbs_convert_hyperlinks" type="checkbox" <?php if ($selected_convert_hyperlinks == '1') { print 'checked="CHECKED"'; } ?>>
+        <label for="lbs_convert_hyperlinks">Add tooltips to existing <a href="http://bible.logos.com/" target="_blank">Bible.Logos.com</a> and <a href="http://ref.ly/" target="_blank">Ref.ly</a> links.</label>
+      </td>
+    </tr>
+    <tr style="vertical-align:top">
+      <th scope="row">Case sensitivity:</th>
+      <td><input name="lbs_case_insensitive" value="1" id="lbs_case_insensitive1" type="checkbox" <?php if ($selected_case_insensitive == '1') { print 'checked="CHECKED"'; } ?>>
+        <label for="lbs_case_insensitive">Tag Bible references with improper casing (e.g., jn 3:16 or JOHN 3:16).</label>
+      </td>
+    </tr>
+    <tr style="vertical-align:top">
+      <th scope="row">Search options:</th>
+      <td>
+      <input name="lbs_search_comments" value="1" id="lbs_search_comments" type="checkbox" <?php if ($selected_comments == '1') { print 'checked="CHECKED"'; } ?>>
+      <label for="lbs_search_comments">Search for Bible references in user comments.</label>
+      <br/>
+      <br/>
+      <table>
+        <tr>Do not search the following HTML tags:</tr>
+        <tr>
+          <td><input name="lbs_nosearch_b" value="1" id="lbs_nosearch_b" type="checkbox" <?php if ($selected_nosearch['b'] == '1') { print 'checked="CHECKED"'; } ?>>
+            <label for="lbs_nosearch_b">Bold</label>
+            <br/>
+            <input name="lbs_nosearch_i" value="1" id="lbs_nosearch_i" type="checkbox" <?php if ($selected_nosearch['i'] == '1') { print 'checked="CHECKED"'; } ?>>
+            <label for="lbs_nosearch_i">Italic</label>
+            <br/>
+            <input name="lbs_nosearch_u" value="1" id="lbs_nosearch_u" type="checkbox" <?php if ($selected_nosearch['u'] == '1') { print 'checked="CHECKED"'; } ?>>
+            <label for="lbs_nosearch_u">Underline</label>
+            <br/>
+            <input name="lbs_nosearch_ol" value="1" id="lbs_nosearch_ol" type="checkbox" <?php if ($selected_nosearch['ol'] == '1') { print 'checked="CHECKED"'; } ?>>
+            <label for="lbs_nosearch_ol">Ordered list</label>
+            <br/>
+            <input name="lbs_nosearch_ul" value="1" id="lbs_nosearch_ul" type="checkbox" <?php if ($selected_nosearch['ul'] == '1') { print 'checked="CHECKED"'; } ?>>
+            <label for="lbs_nosearch_ul">Unordered list</label>
+            <br/>
+            <input name="lbs_nosearch_span" value="1" id="lbs_nosearch_span" type="checkbox" <?php if ($selected_nosearch['span'] == '1') { print 'checked="CHECKED"'; } ?>>
+            <label for="lbs_nosearch_span">Span</label>
+          </td>
+          <td><input name="lbs_nosearch_h1" value="1" id="lbs_nosearch_h1" type="checkbox" <?php if ($selected_nosearch['h1'] == '1') { print 'checked="CHECKED"'; } ?>>
+            <label for="lbs_nosearch_h1">Header 1</label>
+            <br/>
+            <input name="lbs_nosearch_h2" value="1" id="lbs_nosearch_h2" type="checkbox" <?php if ($selected_nosearch['h2'] == '1') { print 'checked="CHECKED"'; } ?>>
+            <label for="lbs_nosearch_h2">Header 2</label>
+            <br/>
+            <input name="lbs_nosearch_h3" value="1" id="lbs_nosearch_h3" type="checkbox" <?php if ($selected_nosearch['h3'] == '1') { print 'checked="CHECKED"'; } ?>>
+            <label for="lbs_nosearch_h3">Header 3</label>
+            <br/>
+            <input name="lbs_nosearch_h4" value="1" id="lbs_nosearch_h4" type="checkbox" <?php if ($selected_nosearch['h4'] == '1') { print 'checked="CHECKED"'; } ?>>
+            <label for="lbs_nosearch_h4">Header 4</label>
+            <br/>
+            <input name="lbs_nosearch_h5" value="1" id="lbs_nosearch_h5" type="checkbox" <?php if ($selected_nosearch['h5'] == '1') { print 'checked="CHECKED"'; } ?>>
+            <label for="lbs_nosearch_h5">Header 5</label>
+            <br/>
+            <input name="lbs_nosearch_h6" value="1" id="lbs_nosearch_h6" type="checkbox" <?php if ($selected_nosearch['h6'] == '1') { print 'checked="CHECKED"'; } ?>>
+            <label for="lbs_nosearch_h6">Header 6</label>
+          </td>
+        </tr>
+        </td>
+        
+      </table>
+  </table>
+  <p class="submit">
+    <input type="submit" name="submit" value="Save Changes" />
+  </p>
+</form>
+<?php
 }
 
 // Add the options page to the menu
@@ -440,10 +472,5 @@ register_deactivation_hook(__FILE__, 'lbs_unset_options');
 
 // Run when the footer is generated
 add_action('wp_footer', 'lbsFooter');
-
-
-
-
-
 
 ?>
