@@ -6,7 +6,7 @@ Requires at least: 2.3
 Tested up to: 2.8
 Stable tag: trunk
 
-RefTagger turns Bible references into links to the verse on Bible.logos.com at adds tooltips with the text of the verse.
+RefTagger turns Bible references into links to the verse on Bible.logos.com and adds tooltips with the text of the verse.
 
 == Description ==
 

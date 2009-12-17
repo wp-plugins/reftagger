@@ -60,9 +60,9 @@ function lbsFooter($unused)
 function lbs_set_options()
 {
 	add_option('lbs_bible_version', 'ESV', 'Which Bible version to use');
-	add_option('lbs_libronix', 'false', 'Insert Libronix links');
-	add_option('lbs_existing_libronix', 'false', 'Insert Libronix icon after existing Libronix links');
-	add_option('lbs_libronix_color', 'dark', 'Color of Libronix link icons');
+	add_option('lbs_libronix', 'false', 'Insert Logos Bible Software links');
+	add_option('lbs_existing_libronix', 'false', 'Insert Logos icon after existing Logos Bible Software links');
+	add_option('lbs_libronix_color', 'dark', 'Color of Logos link icons');
 	add_option('lbs_tooltips', '1', 'Show a tooltip containing the verse text when the mouse hovers over a reference');
 	add_option('lbs_search_comments', '1', 'Whether or not to search user comments');
 	$default_nosearch = array('h1' => "1",
@@ -70,7 +70,7 @@ function lbs_set_options()
 							  'h3' => "1");
 	add_option('lbs_nosearch', $default_nosearch, 'List of HTML tags that will not be searched');
 	add_option('lbs_new_window', '0', 'Whether or not to open links in a new window');
-	add_option('lbs_libronix_bible_version', 'ESV', 'Which Bible version to use with Libronix links');
+	add_option('lbs_libronix_bible_version', 'ESV', 'Which Bible version to use with Logos Bible Software links');
 	add_option('lbs_css_override', '0', 'Whether or not to override the default tooltip CSS');
 	add_option('lbs_convert_hyperlinks', '0', 'Whether or not to add tooltips to existing Bible.Logos.com and Ref.ly links');
 	add_option('lbs_case_insensitive', '0', 'Whether or not to link references with improper casing');
@@ -333,16 +333,16 @@ function lbs_options_page()
       </td>
     </tr>
     <tr style="vertical-align:middle">
-      <th scope="row">Insert Libronix links:</th>
+      <th scope="row">Insert Logos Bible Software links:</th>
       <td><input name="lbs_libronix" value="1" id="lbs_libronix" type="checkbox" <?php if ($selected_libronix == '1') { print 'checked="CHECKED"'; } ?>>
-        <label for="lbs_libronix">Insert a small icon linking to the verse in <a href="http://www.logos.com/demo?wprtplugin" target="_blank">Libronix</a>.</label>
+        <label for="lbs_libronix">Insert a small icon linking to the verse in <a href="http://www.logos.com/demo?wprtplugin" target="_blank">Logos Bible Software</a>.</label>
         <br/>
         <input name="lbs_existing_libronix" value="1" id="lbs_existing_libronix" type="checkbox" <?php if ($selected_existing_libronix == '1') { print 'checked="CHECKED"'; } ?>>
-        <label for="lbs_existing_libronix">Add a Libronix icon to existing Libronix links.</label>
+        <label for="lbs_existing_libronix">Add a Logos icon to existing Logos Bible Software links.</label>
       </td>
     </tr>
     <tr style="vertical-align:top">
-      <th scope="row">Libronix Bible version:</th>
+      <th scope="row">Logos Bible Software Bible version:</th>
       <td><select name="lbs_libronix_bible_version">
           <option value="DEFAULT" <?php if ($selected_lib_version == 'DEFAULT') { print 'selected="SELECTED"'; } ?>>User’s Default</option>
           <option value="NIV" <?php if ($selected_lib_version == 'NIV') { print 'selected="SELECTED"'; } ?>>NIV</option>
@@ -369,7 +369,7 @@ function lbs_options_page()
       </td>
     </tr>
     <tr style="vertical-align:top">
-      <th scope="row">Libronix link icon:</th>
+      <th scope="row">Logos link icon:</th>
       <td><input name="lbs_libronix_color" id="lbs_libronix_color0" value="dark" style="vertical-align: middle" type="radio" <?php if ($selected_color == 'dark') { print 'checked="CHECKED"'; } ?>>
         <label for="lbs_libronix_color0"><img src="http://www.logos.com/images/Corporate/LibronixLink_dark.png"/> Dark (for sites with light backgrounds)</label>
         <br/>
