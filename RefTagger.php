@@ -4,7 +4,7 @@ Plugin Name: RefTagger
 Plugin URI: http://www.logos.com/reftagger
 Description: Transform Bible references into links to the full text of the verse.
 Author: Logos Bible Software
-Version: 1.7
+Version: 2.0
 Author URI: http://www.logos.com/
 */
 
@@ -19,40 +19,48 @@ function lbsFooter($unused)
 	$nosearch = get_option('lbs_nosearch');
 	$new_window = get_option('lbs_new_window');
 	$libronix_bible_version = get_option('lbs_libronix_bible_version');
-	$css_override = get_option('lbs_css_override');
 	$convert_hyperlinks = get_option('lbs_convert_hyperlinks');
 	$case_insensitive = get_option('lbs_case_insensitive');
 	$first = true;
 	
 	// Generate the script code to be printed on the page
 	?>
-<script src="http://bible.logos.com/jsapi/Referencetagging.js" type="text/javascript"></script>
-<script type="text/javascript">
-			Logos.ReferenceTagging.lbsBibleVersion = "<?php echo $bible_version;?>";
-			Logos.ReferenceTagging.lbsLibronixBibleVersion = "<?php echo $libronix_bible_version;?>";
-			<?php if($libronix == 1) echo 'Logos.ReferenceTagging.lbsAddLibronixDLSLink = true;';?>
-			<?php if($existing_libronix == 1) echo 'Logos.ReferenceTagging.lbsAppendIconToLibLinks = true;';?>
-			Logos.ReferenceTagging.lbsLibronixLinkIcon = "<?php echo $link_color;?>";
-			<?php if($search_comments != 1) echo 'Logos.ReferenceTagging.lbsNoSearchClassNames = [ "commentlist" ];';?>
-			<?php if($tooltips != 1) echo 'Logos.ReferenceTagging.lbsUseTooltip = false;';?>
-			Logos.ReferenceTagging.lbsNoSearchTagNames = [ <?php foreach($nosearch as $tagname => $value)
-			{
-				if($value == '1')
+<script>
+	var refTagger = {
+		settings: {
+			bibleVersion: "<?php echo $bible_version;?>",
+			libronixBibleVersion: "<?php echo $libronix_bible_version;?>",
+			addLogosLink: <?php echo ($libronix ? 'true' : 'false');?>,
+			appendIconToLibLinks: <?php echo ($existing_libronix ? 'true' : 'false');?>,
+			libronixLinkIcon: "<?php echo $link_color;?>",
+			noSearchClassNames: <?php echo ($search_comments ? '[]' : '[ "commentList" ]');?>,
+			useTooltip: <?php echo ($tooltips ? 'true' : 'false');?>,
+			noSearchTagNames: [<?php
+				$first = true;
+				foreach($nosearch as $tagname => $value)
 				{
-					if($first)
-						$first = false;
-					else
-						echo ', ';
-						
-					echo '"'.$tagname.'"';
-				}
-			}?> ];
-			<?php if($new_window == 1) echo 'Logos.ReferenceTagging.lbsLinksOpenNewWindow = true;';?>
-			<?php if($css_override == 1) echo 'Logos.ReferenceTagging.lbsCssOverride = true;';?>
-			<?php if($convert_hyperlinks == 1) echo 'Logos.ReferenceTagging.lbsConvertHyperlinks = true;';?>
-			<?php if($case_insensitive == 1) echo 'Logos.ReferenceTagging.lbsCaseInsensitive = true;';?>
-			Logos.ReferenceTagging.tag();
-		</script>
+					if($value == '1')
+					{
+						if($first)
+							$first = false;
+						else
+							echo ', ';
+							
+						echo '"'.$tagname.'"';
+					}
+				}?>],
+			linksOpenNewWindow: <?php echo ($new_window ? 'true' : 'false');?>,
+			convertHyperlinks: <?php echo ($convert_hyperlinks ? 'true' : 'false');?>,
+			caseInsensitive: <?php echo ($case_insensitive ? 'true' : 'false');?> 
+		}
+	};
+
+	(function(d, t) {
+		var g = d.createElement(t), s = d.getElementsByTagName(t)[0];
+		g.src = '//api.reftagger.com/v2/reftagger.js';
+		s.parentNode.insertBefore(g, s);
+	}(document, 'script'));
+</script>
 <?php
 }
 
@@ -71,8 +79,7 @@ function lbs_set_options()
 	add_option('lbs_nosearch', $default_nosearch, 'List of HTML tags that will not be searched');
 	add_option('lbs_new_window', '0', 'Whether or not to open links in a new window');
 	add_option('lbs_libronix_bible_version', 'ESV', 'Which Bible version to use with Logos Bible Software links');
-	add_option('lbs_css_override', '0', 'Whether or not to override the default tooltip CSS');
-	add_option('lbs_convert_hyperlinks', '0', 'Whether or not to add tooltips to existing Bible.Logos.com and Ref.ly links');
+	add_option('lbs_convert_hyperlinks', '0', 'Whether or not to add tooltips to existing Biblia.com and Ref.ly links');
 	add_option('lbs_case_insensitive', '0', 'Whether or not to link references with improper casing');
 }
 
@@ -88,7 +95,6 @@ function lbs_unset_options()
 	delete_option('lbs_nosearch');
 	delete_option('lbs_new_window');
 	delete_option('lbs_libronix_bible_version');
-	delete_option('lbs_css_override');
 	delete_option('lbs_convert_hyperlinks');
 	delete_option('lbs_case_insensitive');
 }
@@ -126,7 +132,6 @@ function lbs_update_options()
 	$nosearch = get_option('lbs_nosearch');
 	$window = get_option('lbs_new_window');
 	$old_tooltips = get_option('lbs_tooltips');
-	$old_css = get_option('lbs_css_override');
 	$old_convert = get_option('lbs_convert_hyperlinks');
 	$old_case = get_option('lbs_case_insensitive');
 
@@ -146,12 +151,6 @@ function lbs_update_options()
 	if($_REQUEST['lbs_libronix'] != $old_libronix)
 	{
 		update_option('lbs_libronix', $_REQUEST['lbs_libronix']);
-		$changed = true;
-	}
-	
-	if($_REQUEST['lbs_css_override'] != $old_css)
-	{
-		update_option('lbs_css_override', $_REQUEST['lbs_css_override']);
 		$changed = true;
 	}
 
@@ -300,7 +299,6 @@ function lbs_options_page()
 	$selected_comments = get_option('lbs_search_comments');
 	$selected_window = get_option('lbs_new_window');
 	$selected_lib_version = get_option('lbs_libronix_bible_version');
-	$selected_css_override = get_option('lbs_css_override');
 	$selected_convert_hyperlinks = get_option('lbs_convert_hyperlinks');
 	$selected_case_insensitive = get_option('lbs_case_insensitive');	
 	?>
@@ -386,20 +384,14 @@ function lbs_options_page()
       </td>
     </tr>
     <tr style="vertical-align:top">
-      <th scope="row">Tooltip style:</th>
-      <td><input name="lbs_css_override" value="1" id="lbs_css_override" type="checkbox" <?php if ($selected_css_override == '1') { print 'checked="CHECKED"'; } ?>>
-        <label for="lbs_css_override1">Use the custom CSS I have already added to my stylesheet. (Follow <a href="http://www.logos.com/reftagger#style-tooltips" target="_blank">these instructions</a>, but skip step 1.)</label>
-      </td>
-    </tr>
-    <tr style="vertical-align:top">
       <th scope="row">Add tooltips to links:</th>
       <td><input name="lbs_convert_hyperlinks" value="1" id="lbs_convert_hyperlinks" type="checkbox" <?php if ($selected_convert_hyperlinks == '1') { print 'checked="CHECKED"'; } ?>>
-        <label for="lbs_convert_hyperlinks">Add tooltips to existing <a href="http://bible.logos.com/" target="_blank">Bible.Logos.com</a> and <a href="http://ref.ly/" target="_blank">Ref.ly</a> links.</label>
+        <label for="lbs_convert_hyperlinks">Add tooltips to existing <a href="http://biblia.com/" target="_blank">Biblia.com</a> and <a href="http://ref.ly/" target="_blank">Ref.ly</a> links.</label>
       </td>
     </tr>
     <tr style="vertical-align:top">
       <th scope="row">Case sensitivity:</th>
-      <td><input name="lbs_case_insensitive" value="1" id="lbs_case_insensitive1" type="checkbox" <?php if ($selected_case_insensitive == '1') { print 'checked="CHECKED"'; } ?>>
+      <td><input name="lbs_case_insensitive" value="1" id="lbs_case_insensitive" type="checkbox" <?php if ($selected_case_insensitive == '1') { print 'checked="CHECKED"'; } ?>>
         <label for="lbs_case_insensitive">Tag Bible references with improper casing (e.g., jn 3:16 or JOHN 3:16).</label>
       </td>
     </tr>
